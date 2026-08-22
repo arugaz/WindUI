@@ -37,3 +37,24 @@
     ```luau
     loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main_example.lua'))()
     ```
+
+### Optional SafelinkU key links
+
+Set `KeySystem.SafelinkU` to an API token to wrap provider key links through
+SafelinkU before copying them:
+
+```lua
+KeySystem = {
+    SafelinkU = "YOUR-SAFELINKU-API-TOKEN",
+    API = {
+        {
+            Type = "platoboost",
+            ServiceId = 1234,
+            Secret = "service-secret",
+        },
+    },
+}
+```
+
+If `SafelinkU` is nil or an empty string, WindUI copies the original provider
+URL without making a SafelinkU request.

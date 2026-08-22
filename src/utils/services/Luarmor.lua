@@ -30,7 +30,7 @@ function Luarmor.New(scriptId, discord)
 	end
 
 	function CopyLink()
-		fsetclipboard(tostring(discord))
+		return tostring(discord)
 	end
 
 	return {
