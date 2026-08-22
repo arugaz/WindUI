@@ -2,6 +2,7 @@
 # For more information, see https://github.com/rojo-rbx/rokit
 
 # New tools can be added by running `rokit add <tool>` in a terminal.
+# darklua process src/Init.lua dist/WindUI.luau --config build/darklua.config.json
 
 [tools]
 darklua = "seaofvoices/darklua@0.19.0"
