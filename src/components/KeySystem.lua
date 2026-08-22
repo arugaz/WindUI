@@ -7,9 +7,68 @@ local Tween = Creator.Tween
 local CreateButton = require("./ui/Button").New
 local CreateInput = require("./ui/Input").New
 
+-- Publish a validated API key and a reusable verifier for downstream scripts.
+-- Configure the names with KeySystem.AuthEnvName / KeyEnvName if desired.
+function KeySystem.PublishAuth(Config, key, serviceInstances)
+	local env = (getgenv and getgenv()) or _G
+	local authEnvName = Config.KeySystem.AuthEnvName or "WindUIAuth"
+	local keyEnvName = Config.KeySystem.KeyEnvName or "WindUIKey"
+	local services = serviceInstances or {}
+
+	if #services == 0 and Config.KeySystem.API then
+		for _, apiConfig in next, Config.KeySystem.API do
+			local serviceData = Config.WindUI.Services[apiConfig.Type]
+			if serviceData then
+				local args = {}
+				for _, argName in next, serviceData.Args do
+					table.insert(args, apiConfig[argName])
+				end
+				local ok, service = pcall(serviceData.New, table.unpack(args))
+				if ok and service then
+					table.insert(services, service)
+				end
+			end
+		end
+	end
+
+	local auth = {
+		Key = tostring(key),
+		Services = services,
+	}
+
+	function auth.Verify(keyOverride)
+		local candidate = keyOverride or auth.Key
+		if type(candidate) ~= "string" or candidate == "" then
+			return false, "No key is stored."
+		end
+
+		local lastMessage = "Invalid key."
+		for _, service in next, services do
+			local callOk, valid, message = pcall(service.Verify, candidate)
+			if callOk and valid == true then
+				auth.Key = candidate
+				env[keyEnvName] = candidate
+				return true, message or ""
+			end
+			lastMessage = callOk and tostring(message or lastMessage) or tostring(valid)
+		end
+
+		if candidate == auth.Key then
+			auth.Key = nil
+			env[keyEnvName] = nil
+		end
+		return false, lastMessage
+	end
+
+	env[keyEnvName] = auth.Key
+	env[authEnvName] = auth
+	return auth
+end
+
 function KeySystem.new(Config, Filename, func, keyValidator)
 	local KeyDialogInit = require("./window/Dialog")
-	local KeyDialog = KeyDialogInit.Create(true, "Popup", Config.Window, Config.WindUI, Config.WindUI.ScreenGui.KeySystem)
+	local KeyDialog =
+		KeyDialogInit.Create(true, "Popup", Config.Window, Config.WindUI, Config.WindUI.ScreenGui.KeySystem)
 
 	local Services = {}
 
@@ -425,6 +484,9 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 	end
 
 	local function handleSuccess(key)
+		if Config.KeySystem.API then
+			KeySystem.PublishAuth(Config, key, Services)
+		end
 		KeyDialog:Close()()
 		writefile((Config.Folder or "Temp") .. "/" .. Filename .. ".key", tostring(key))
 		task.wait(0.4)

@@ -380,6 +380,7 @@ function WindUI:CreateWindow(Config)
 			if isfile(keyPath) then
 				local fileKey = readfile(keyPath)
 				local isSuccess = false
+				local serviceInstances = {}
 
 				for _, i in next, Config.KeySystem.API do
 					local serviceData = WindUI.Services[i.Type]
@@ -390,6 +391,7 @@ function WindUI:CreateWindow(Config)
 						end
 
 						local service = serviceData.New(table.unpack(args))
+						table.insert(serviceInstances, service)
 						local success = service.Verify(fileKey)
 						if success then
 							isSuccess = true
@@ -399,7 +401,9 @@ function WindUI:CreateWindow(Config)
 				end
 
 				CanLoadWindow = isSuccess
-				if not isSuccess then
+				if isSuccess then
+					KeySystem.PublishAuth(Config, fileKey, serviceInstances)
+				else
 					loadKeysystem()
 				end
 			else
