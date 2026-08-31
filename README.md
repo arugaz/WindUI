@@ -37,24 +37,24 @@
     ```luau
     loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main_example.lua'))()
     ```
+### Junkie key system
 
-### Optional SafelinkU key links
-
-Set `KeySystem.SafelinkU` to an API token to wrap provider key links through
-SafelinkU before copying them:
+WindUI can use a server-side Junkie proxy through the `junkiedevelopment`
+provider. Add the following API entry to your window's `KeySystem` config:
 
 ```lua
 KeySystem = {
-    SafelinkU = "YOUR-SAFELINKU-API-TOKEN",
     API = {
         {
-            Type = "platoboost",
-            ServiceId = 1234,
-            Secret = "service-secret",
+            Type = "junkiedevelopment",
+            BackendURL = "https://kocakz-junkie.vercel.app",
         },
     },
+    SaveKey = true,
 }
 ```
 
-If `SafelinkU` is nil or an empty string, WindUI copies the original provider
-URL without making a SafelinkU request.
+The backend handles the Junkie API credential, service, and provider. None of
+those secrets are included in WindUI. After successful validation, the adapter
+publishes the entered key as `getgenv().SCRIPT_KEY` and the short-lived backend
+session as `getgenv().JUNKIE_SESSION`.

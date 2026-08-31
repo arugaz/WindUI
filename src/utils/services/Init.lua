@@ -23,7 +23,7 @@ return {
     junkiedevelopment = {
         Name = "Junkie Development",
         Icon = "rbxassetid://106310347705078",
-        Args = {"ServiceId", "ApiKey", "Provider"},
+        Args = {"BackendURL"},
 
         New = require("./JunkieDevelopment").New
     },

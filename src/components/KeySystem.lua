@@ -6,7 +6,6 @@ local Tween = Creator.Tween
 
 local CreateButton = require("./ui/Button").New
 local CreateInput = require("./ui/Input").New
-local SafelinkU = require("../utils/SafelinkU")
 
 -- Publish a validated API key and a reusable verifier for downstream scripts.
 -- Configure the names with KeySystem.AuthEnvName / KeyEnvName if desired.
@@ -460,18 +459,9 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 						return
 					end
 
-					local finalURL = originalURL
-					local safelinkToken = Config.KeySystem.SafelinkU
-					if type(safelinkToken) == "string" and safelinkToken ~= "" then
-						local shortenOk, shortenedURL = pcall(SafelinkU.Create, originalURL, safelinkToken)
-						if shortenOk then
-							finalURL = shortenedURL
-						end
-					end
-
 					local setClipboard = setclipboard or toclipboard
 					assert(type(setClipboard) == "function", "executor does not provide clipboard access")
-					setClipboard(finalURL)
+					setClipboard(originalURL)
 					Config.WindUI:Notify({
 						Title = "Key System",
 						Content = "Key link copied to clipboard.",
