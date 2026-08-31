@@ -61,6 +61,7 @@ end
 function JunkieDevelopment.New(backendURL)
 	local baseURL = normalizeURL(backendURL)
 	local hwid = getHWID()
+	local currentSession
 
 	local function validateKey(key)
 		if type(key) ~= "string" or key == "" then
@@ -76,12 +77,33 @@ function JunkieDevelopment.New(backendURL)
 		end
 
 		if result.valid == true then
-			local environment = (getgenv and getgenv()) or _G
-			environment.SCRIPT_KEY = key
-			environment.JUNKIE_SESSION = result.session
+			if type(result.session) ~= "string" or result.session == "" then
+				return false, "SESSION_MISSING"
+			end
+			currentSession = result.session
 			return true, tostring(result.message or "KEY_VALID")
 		end
 
+		return false, tostring(result.error or result.message or ("HTTP_" .. tostring(status)))
+	end
+
+	local function verifySession()
+		if type(currentSession) ~= "string" or currentSession == "" then
+			return false, "SESSION_MISSING"
+		end
+
+		local callOk, result, status = pcall(postJSON, baseURL, "/api/session", {
+			session = currentSession,
+			hwid = hwid,
+		})
+		if not callOk then
+			return false, "Junkie backend request failed: " .. tostring(result)
+		end
+		if result.valid == true then
+			return true, tostring(result.message or "SESSION_VALID")
+		end
+
+		currentSession = nil
 		return false, tostring(result.error or result.message or ("HTTP_" .. tostring(status)))
 	end
 
@@ -95,7 +117,9 @@ function JunkieDevelopment.New(backendURL)
 
 	return {
 		Verify = validateKey,
+		VerifySession = verifySession,
 		Copy = getKeyLink,
+		SessionOnly = true,
 	}
 end
 

@@ -27190,41 +27190,65 @@ end
 function aa.New(af)
 local ag=normalizeURL(af)
 local ah=getHWID()
+local ai
 
-local function validateKey(ai)
-if type(ai)~="string"or ai==""then
+local function validateKey(aj)
+if type(aj)~="string"or aj==""then
 return false,"KEY_INVALID"
 end
 
-local aj,ak,al=pcall(postJSON,ag,"/api/check",{
-key=ai,
+local ak,al,am=pcall(postJSON,ag,"/api/check",{
+key=aj,
+hwid=ah,
+})
+if not ak then
+return false,"Junkie backend request failed: "..tostring(al)
+end
+
+if al.valid==true then
+if type(al.session)~="string"or al.session==""then
+return false,"SESSION_MISSING"
+end
+ai=al.session
+return true,tostring(al.message or"KEY_VALID")
+end
+
+return false,tostring(al.error or al.message or("HTTP_"..tostring(am)))
+end
+
+local function verifySession()
+if type(ai)~="string"or ai==""then
+return false,"SESSION_MISSING"
+end
+
+local aj,ak,al=pcall(postJSON,ag,"/api/session",{
+session=ai,
 hwid=ah,
 })
 if not aj then
 return false,"Junkie backend request failed: "..tostring(ak)
 end
-
 if ak.valid==true then
-local am=(getgenv and getgenv())or _G
-am.SCRIPT_KEY=ai
-am.JUNKIE_SESSION=ak.session
-return true,tostring(ak.message or"KEY_VALID")
+return true,tostring(ak.message or"SESSION_VALID")
 end
 
+ai=nil
 return false,tostring(ak.error or ak.message or("HTTP_"..tostring(al)))
 end
 
 local function getKeyLink()
-local ai,aj=postJSON(ag,"/api/link",{hwid=ah})
-if ai.success~=true or type(ai.url)~="string"or ai.url==""then
-error(tostring(ai.error or ai.message or("HTTP_"..tostring(aj))))
+local aj,ak=postJSON(ag,"/api/link",{hwid=ah})
+if aj.success~=true or type(aj.url)~="string"or aj.url==""then
+error(tostring(aj.error or aj.message or("HTTP_"..tostring(ak))))
 end
-return ai.url
+return aj.url
 end
 
 return{
 Verify=validateKey,
+VerifySession=verifySession,
 Copy=getKeyLink,
+SessionOnly=true,
 }
 end
 
@@ -27784,38 +27808,51 @@ end
 end
 end
 
-local an={
-Key=tostring(ah),
+local an=false
+for ao,ap in next,am do
+if ap.SessionOnly==true and type(ap.VerifySession)=="function"then
+an=true
+break
+end
+end
+
+local ao={
+Key=an and nil or tostring(ah),
 Services=am,
 }
 
-function an.Verify(ao)
-local ap=ao or an.Key
-if type(ap)~="string"or ap==""then
-return false,"No key is stored."
+function ao.Verify(ap)
+local aq=ap or ao.Key
+local ar="Invalid key."
+for as,at in next,am do
+local au,av,aw
+if ap==nil and type(at.VerifySession)=="function"then
+au,av,aw=pcall(at.VerifySession)
+elseif type(aq)=="string"and aq~=""then
+au,av,aw=pcall(at.Verify,aq)
+else
+au,av,aw=true,false,"No key or session is stored."
+end
+if au and av==true then
+if at.SessionOnly~=true then
+ao.Key=aq
+aj[al]=aq
+end
+return true,aw or""
+end
+ar=au and tostring(aw or ar)or tostring(av)
 end
 
-local aq="Invalid key."
-for ar,as in next,am do
-local at,au,av=pcall(as.Verify,ap)
-if at and au==true then
-an.Key=ap
-aj[al]=ap
-return true,av or""
-end
-aq=at and tostring(av or aq)or tostring(au)
-end
-
-if ap==an.Key then
-an.Key=nil
+if aq==ao.Key then
+ao.Key=nil
 aj[al]=nil
 end
-return false,aq
+return false,ar
 end
 
-aj[al]=an.Key
-aj[ak]=an
-return an
+aj[al]=an and nil or ao.Key
+aj[ak]=ao
+return ao
 end
 
 function aa.new(ag,ah,ai,aj)

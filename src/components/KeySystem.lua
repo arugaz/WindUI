@@ -31,23 +31,36 @@ function KeySystem.PublishAuth(Config, key, serviceInstances)
 		end
 	end
 
+	local sessionOnly = false
+	for _, service in next, services do
+		if service.SessionOnly == true and type(service.VerifySession) == "function" then
+			sessionOnly = true
+			break
+		end
+	end
+
 	local auth = {
-		Key = tostring(key),
+		Key = sessionOnly and nil or tostring(key),
 		Services = services,
 	}
 
 	function auth.Verify(keyOverride)
 		local candidate = keyOverride or auth.Key
-		if type(candidate) ~= "string" or candidate == "" then
-			return false, "No key is stored."
-		end
-
 		local lastMessage = "Invalid key."
 		for _, service in next, services do
-			local callOk, valid, message = pcall(service.Verify, candidate)
+			local callOk, valid, message
+			if keyOverride == nil and type(service.VerifySession) == "function" then
+				callOk, valid, message = pcall(service.VerifySession)
+			elseif type(candidate) == "string" and candidate ~= "" then
+				callOk, valid, message = pcall(service.Verify, candidate)
+			else
+				callOk, valid, message = true, false, "No key or session is stored."
+			end
 			if callOk and valid == true then
-				auth.Key = candidate
-				env[keyEnvName] = candidate
+				if service.SessionOnly ~= true then
+					auth.Key = candidate
+					env[keyEnvName] = candidate
+				end
 				return true, message or ""
 			end
 			lastMessage = callOk and tostring(message or lastMessage) or tostring(valid)
@@ -60,7 +73,7 @@ function KeySystem.PublishAuth(Config, key, serviceInstances)
 		return false, lastMessage
 	end
 
-	env[keyEnvName] = auth.Key
+	env[keyEnvName] = sessionOnly and nil or auth.Key
 	env[authEnvName] = auth
 	return auth
 end

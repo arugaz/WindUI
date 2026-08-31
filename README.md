@@ -55,6 +55,6 @@ KeySystem = {
 ```
 
 The backend handles the Junkie API credential, service, and provider. None of
-those secrets are included in WindUI. After successful validation, the adapter
-publishes the entered key as `getgenv().SCRIPT_KEY` and the short-lived backend
-session as `getgenv().JUNKIE_SESSION`.
+those secrets are included in WindUI. The entered key is sent only for the
+initial check; the returned short-lived session stays private inside the
+service instance and powers later `auth.Verify()` calls through `/api/session`.
