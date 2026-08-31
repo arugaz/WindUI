@@ -39392,6 +39392,13 @@ end
 end)
 
 function G.Destroy(H)
+if aw.Destroyed then
+return
+end
+
+
+aw.Destroyed=true
+
 task.spawn(function()
 if aw.OnDestroyCallback then
 task.spawn(function()
@@ -39403,14 +39410,20 @@ if aw.AcrylicPaint and aw.AcrylicPaint.Model then
 aw.AcrylicPaint.Model:Destroy()
 end
 
-aw.Destroyed=true
-
 task.wait(0.4)
 
-av.WindUI.ScreenGui:Destroy()
-av.WindUI.NotificationGui:Destroy()
-av.WindUI.DropdownGui:Destroy()
-av.WindUI.TooltipGui:Destroy()
+for J,L in ipairs{
+av.WindUI.ScreenGui,
+av.WindUI.NotificationGui,
+av.WindUI.DropdownGui,
+av.WindUI.TooltipGui,
+}do
+if L then
+pcall(function()
+L:Destroy()
+end)
+end
+end
 
 an.DisconnectAll()
 
@@ -39421,7 +39434,13 @@ end
 return G
 end
 function aw.Destroy(F)
-return aw:Close():Destroy()
+if aw.Destroyed then
+return
+end
+local G=aw:Close()
+if G then
+return G:Destroy()
+end
 end
 function aw.Toggle(F)
 if aw.Closed then

@@ -1500,6 +1500,13 @@ return function(Config)
 		end)
 
 		function Close:Destroy()
+			if Window.Destroyed then
+				return
+			end
+			-- Mark the window before spawning cleanup so repeated calls cannot
+			-- enqueue another delayed destroy task.
+			Window.Destroyed = true
+
 			task.spawn(function()
 				if Window.OnDestroyCallback then
 					task.spawn(function()
@@ -1511,14 +1518,20 @@ return function(Config)
 					Window.AcrylicPaint.Model:Destroy()
 				end
 
-				Window.Destroyed = true
-
 				task.wait(0.4)
 
-				Config.WindUI.ScreenGui:Destroy()
-				Config.WindUI.NotificationGui:Destroy()
-				Config.WindUI.DropdownGui:Destroy()
-				Config.WindUI.TooltipGui:Destroy()
+				for _, gui in ipairs({
+					Config.WindUI.ScreenGui,
+					Config.WindUI.NotificationGui,
+					Config.WindUI.DropdownGui,
+					Config.WindUI.TooltipGui,
+				}) do
+					if gui then
+						pcall(function()
+							gui:Destroy()
+						end)
+					end
+				end
 
 				Creator.DisconnectAll()
 
@@ -1529,7 +1542,13 @@ return function(Config)
 		return Close
 	end
 	function Window:Destroy()
-		return Window:Close():Destroy()
+		if Window.Destroyed then
+			return
+		end
+		local closeHandle = Window:Close()
+		if closeHandle then
+			return closeHandle:Destroy()
+		end
 	end
 	function Window:Toggle()
 		if Window.Closed then
