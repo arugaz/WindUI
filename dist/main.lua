@@ -40492,36 +40492,72 @@ else
 loadKeysystem()
 end
 else
-if isfile(i)then
-local l=readfile(i)
-local m=false
-local p={}
+local l=(getgenv and getgenv())or _G
+local m=aA.KeySystem.KeyEnvName or"WindUIKey"
+local p=l[m]
+local r=type(p)=="string"and p~=""
+local u=false
 
-for r,u in next,aA.KeySystem.API do
-local v=aa.Services[u.Type]
-if v then
-local x={}
-for z,A in next,v.Args do
-table.insert(x,u[A])
+
+if r then
+local v={}
+for x,z in next,aA.KeySystem.API do
+local A=aa.Services[z.Type]
+if A then
+local B={}
+for C,F in next,A.Args do
+table.insert(B,z[F])
 end
 
-local z=v.New(table.unpack(x))
-table.insert(p,z)
-local A=z.Verify(l)
-if A then
-m=true
+local C=A.New(table.unpack(B))
+table.insert(v,C)
+local F,G=pcall(C.Verify,p)
+if F and G==true then
+u=true
 break
 end
 end
 end
 
-d=m
-if m then
-ar.PublishAuth(aA,l,p)
+if u then
+d=true
+ar.PublishAuth(aA,p,v)
+else
+l[m]=nil
+loadKeysystem()
+end
+end
+
+if not r and isfile(i)then
+local v=readfile(i)
+local x=false
+local z={}
+
+for A,B in next,aA.KeySystem.API do
+local C=aa.Services[B.Type]
+if C then
+local F={}
+for G,H in next,C.Args do
+table.insert(F,B[H])
+end
+
+local G=C.New(table.unpack(F))
+table.insert(z,G)
+local H=G.Verify(v)
+if H then
+x=true
+break
+end
+end
+end
+
+d=x
+if x then
+ar.PublishAuth(aA,v,z)
 else
 loadKeysystem()
 end
-else
+elseif not r then
 loadKeysystem()
 end
 end

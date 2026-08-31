@@ -377,7 +377,43 @@ function WindUI:CreateWindow(Config)
 				loadKeysystem()
 			end
 		else
-			if isfile(keyPath) then
+			local env = (getgenv and getgenv()) or _G
+			local keyEnvName = Config.KeySystem.KeyEnvName or "WindUIKey"
+			local environmentKey = env[keyEnvName]
+			local environmentKeyChecked = type(environmentKey) == "string" and environmentKey ~= ""
+			local environmentKeyValid = false
+
+			-- Prefer an executor-wide key so chained scripts can reuse authentication.
+			if environmentKeyChecked then
+				local serviceInstances = {}
+				for _, i in next, Config.KeySystem.API do
+					local serviceData = WindUI.Services[i.Type]
+					if serviceData then
+						local args = {}
+						for _, argName in next, serviceData.Args do
+							table.insert(args, i[argName])
+						end
+
+						local service = serviceData.New(table.unpack(args))
+						table.insert(serviceInstances, service)
+						local callOk, success = pcall(service.Verify, environmentKey)
+						if callOk and success == true then
+							environmentKeyValid = true
+							break
+						end
+					end
+				end
+
+				if environmentKeyValid then
+					CanLoadWindow = true
+					KeySystem.PublishAuth(Config, environmentKey, serviceInstances)
+				else
+					env[keyEnvName] = nil
+					loadKeysystem()
+				end
+			end
+
+			if not environmentKeyChecked and isfile(keyPath) then
 				local fileKey = readfile(keyPath)
 				local isSuccess = false
 				local serviceInstances = {}
@@ -406,7 +442,7 @@ function WindUI:CreateWindow(Config)
 				else
 					loadKeysystem()
 				end
-			else
+			elseif not environmentKeyChecked then
 				loadKeysystem()
 			end
 		end
